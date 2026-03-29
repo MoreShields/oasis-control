@@ -1,0 +1,7 @@
+apiVersion: operator.cluster.x-k8s.io/v1alpha2
+kind: BootstrapProvider
+metadata:
+  name: rke2
+  namespace: rke2-bootstrap-system
+spec:
+  version: v0.21.1

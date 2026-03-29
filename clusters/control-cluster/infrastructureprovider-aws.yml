@@ -1,0 +1,49 @@
+apiVersion: v1
+items:
+- apiVersion: operator.cluster.x-k8s.io/v1alpha2
+  kind: InfrastructureProvider
+  metadata:
+    annotations:
+      argocd.argoproj.io/sync-wave: "2"
+      helm.sh/hook: post-install,post-upgrade
+      helm.sh/hook-weight: "2"
+      operator.cluster.x-k8s.io/applied-spec-hash: 0a7e67ef8c59b588200026c95871842a8a67333c254a2e6f8a107a050c704651
+    creationTimestamp: "2026-03-29T05:16:24Z"
+    finalizers:
+    - provider.cluster.x-k8s.io
+    generation: 2
+    name: aws
+    namespace: aws-infrastructure-system
+    resourceVersion: "10675"
+    uid: 798717c2-76a5-44e2-aa35-beed5dd79710
+  spec:
+    configSecret:
+      name: bnsf-aws-creds
+      namespace: default
+    version: v2.10.2
+  status:
+    conditions:
+    - lastTransitionTime: "2026-03-29T05:17:00Z"
+      message: ""
+      observedGeneration: 2
+      reason: MinimumReplicasAvailable
+      status: "True"
+      type: Ready
+    - lastTransitionTime: "2026-03-29T05:16:33Z"
+      message: All preflight checks passed
+      observedGeneration: 1
+      reason: PreflightChecksPassed
+      status: "True"
+      type: PreflightCheckPassed
+    - lastTransitionTime: "2026-03-29T05:16:50Z"
+      message: Provider installed successfully
+      observedGeneration: 1
+      reason: ProviderInstalled
+      status: "True"
+      type: ProviderInstalled
+    contract: v1beta1
+    installedVersion: v2.10.2
+    observedGeneration: 2
+kind: List
+metadata:
+  resourceVersion: ""

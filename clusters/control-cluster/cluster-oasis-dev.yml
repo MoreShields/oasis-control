@@ -1,0 +1,114 @@
+---
+# Namespace for the workload cluster resources
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: oasis-dev
+---
+# Cluster — the CAPI core object that ties everything together
+apiVersion: cluster.x-k8s.io/v1beta2
+kind: Cluster
+metadata:
+  name: oasis-dev
+  namespace: oasis-dev
+  labels:
+    ccm: external
+spec:
+  clusterNetwork:
+    pods:
+      cidrBlocks: ["10.244.0.0/16"]
+    services:
+      cidrBlocks: ["10.96.0.0/12"]
+  infrastructureRef:
+    apiGroup: infrastructure.cluster.x-k8s.io
+    kind: AWSCluster
+    name: oasis-dev
+  controlPlaneRef:
+    apiGroup: controlplane.cluster.x-k8s.io
+    kind: RKE2ControlPlane
+    name: oasis-dev-control-plane
+---
+# AWSCluster — tells CAPA to create a new VPC and all supporting infra in us-west-1
+apiVersion: infrastructure.cluster.x-k8s.io/v1beta2
+kind: AWSCluster
+metadata:
+  name: oasis-dev
+  namespace: oasis-dev
+spec:
+  region: us-west-1
+  sshKeyName: nate-bnsf
+  controlPlaneLoadBalancer:
+    loadBalancerType: nlb
+    additionalListeners:
+      - port: 9345
+        protocol: TCP
+  # CAPA will create a new VPC with public/private subnets across available AZs
+  network:
+    vpc:
+      cidrBlock: "10.0.0.0/16"
+    additionalControlPlaneIngressRules:
+      - description: "RKE2 supervisor port for node join"
+        protocol: tcp
+        fromPort: 9345
+        toPort: 9345
+        cidrBlocks:
+          - "10.0.0.0/16"
+
+---
+# AWSMachineTemplate — defines the EC2 config for all 3 converged nodes
+# t3a.medium meets minimum reqs for a converged control plane + worker node
+apiVersion: infrastructure.cluster.x-k8s.io/v1beta2
+kind: AWSMachineTemplate
+metadata:
+  name: oasis-dev-mt
+  namespace: oasis-dev
+spec:
+  template:
+    spec:
+      ami:
+        # Debian Trixie (13) + RKE2 v1.32.4+rke2r1 airgap (mkosi-built, see n-jump:/home/admin/k8s-mkosi)
+        id: ami-0ce04faeae10d6e44
+      instanceType: t3a.medium
+      iamInstanceProfile: k8s-converged-node
+      sshKeyName: nate-bnsf
+      rootVolume:
+        size: 50
+        type: gp3
+      cloudInit:
+        # Bypass AWS Secrets Manager — required for CAPRKE2 userdata compatibility
+        insecureSkipSecretsManager: true
+
+---
+# RKE2ControlPlane — manages all 3 converged nodes as control plane members
+apiVersion: controlplane.cluster.x-k8s.io/v1beta1
+kind: RKE2ControlPlane
+metadata:
+  name: oasis-dev-control-plane
+  namespace: oasis-dev
+spec:
+  replicas: 3
+  version: v1.32.4+rke2r1
+  registrationMethod: internal-first
+  machineTemplate:
+    infrastructureRef:
+      apiVersion: infrastructure.cluster.x-k8s.io/v1beta2
+      kind: AWSMachineTemplate
+      name: oasis-dev-mt
+  serverConfig:
+    cni: cilium
+    cloudProviderName: external
+  preRKE2Commands:
+    # Set providerID on kubelet directly from IMDS — bypasses CCM for node identity
+    - 'TOKEN=$(curl -sX PUT "http://169.254.169.254/latest/api/token" -H "X-aws-ec2-metadata-token-ttl-seconds:60") && AZ=$(curl -sH "X-aws-ec2-metadata-token:$TOKEN" http://169.254.169.254/latest/meta-data/placement/availability-zone) && IID=$(curl -sH "X-aws-ec2-metadata-token:$TOKEN" http://169.254.169.254/latest/meta-data/instance-id) && printf "kubelet-arg:\n  - \"provider-id=aws:///%s/%s\"\n" "$AZ" "$IID" >> /etc/rancher/rke2/config.yaml'
+  agentConfig:
+    # Air-gap mode — use artifacts baked into the AMI at /opt/rke2-artifacts/
+    airGapped: true
+    format: cloud-config
+    # Remove the control plane taint so workloads can schedule on these nodes
+    # This is what makes this a converged (combined control plane + worker) cluster
+    nodeTaints: []
+  rolloutStrategy:
+    type: RollingUpdate
+    rollingUpdate:
+      # Never take down more than 1 node at a time — protects etcd quorum
+      maxSurge: 1
