@@ -9,7 +9,7 @@ metadata:
 spec:
   ingressClassName: nginx
   rules:
-    - host: argocd.oasis-dev.local
+    - host: argocd.oasis-control.local
       http:
         paths:
           - path: /

@@ -1,12 +1,12 @@
 # Bootstrap Guide
 
-Bootstraps a local Kind cluster ("bootstrap cluster"), uses it to provision the oasis-dev control cluster on AWS, then installs CAPI + ArgoCD on the control cluster for managing downstream workload clusters via GitOps.
+Bootstraps a local Kind cluster ("bootstrap cluster"), uses it to provision the oasis-control control cluster on AWS, then installs CAPI + ArgoCD on the control cluster for managing downstream workload clusters via GitOps.
 
 ## Architecture
 
 ```
 Bootstrap (Kind, local, ephemeral)
-  └─ creates → Control Cluster (oasis-dev, AWS, permanent)
+  └─ creates → Control Cluster (oasis-control, AWS, permanent)
                   ├─ ArgoCD (GitOps)
                   ├─ CAPI Operator + providers
                   ├─ manages → future workload clusters
@@ -41,10 +41,10 @@ This runs the full flow: Kind cluster → control cluster → CAPI + ArgoCD. Tak
 **Phase 2: Create control cluster on AWS**
 - Applies cluster manifest (VPC, NLB, 3 converged nodes)
 - Waits for all 3 machines to be Running
-- Extracts kubeconfig to `~/.kube/oasis-dev.kubeconfig`
+- Extracts kubeconfig to `~/.kube/oasis-control.kubeconfig`
 
 **Phase 3: Install CAPI on control cluster**
-- Installs cert-manager, CAPI Operator, providers on oasis-dev
+- Installs cert-manager, CAPI Operator, providers on oasis-control
 - The control cluster can now manage downstream workload clusters
 
 **Phase 4: Install ArgoCD on control cluster**
@@ -59,7 +59,7 @@ This runs the full flow: Kind cluster → control cluster → CAPI + ArgoCD. Tak
 
 ```bash
 # Access the control cluster
-export KUBECONFIG=~/.kube/oasis-dev.kubeconfig
+export KUBECONFIG=~/.kube/oasis-control.kubeconfig
 kubectl get nodes
 
 # Get ArgoCD admin password
@@ -82,7 +82,7 @@ kubectl get applications -n argocd
 kubectl delete cluster <name> -n <namespace>
 
 # Delete the control cluster (from bootstrap Kind, if still running)
-kubectl --context kind-oasis-bootstrap delete cluster oasis-dev -n oasis-dev
+kubectl --context kind-oasis-bootstrap delete cluster oasis-control -n oasis-control
 ```
 
 ## Architecture Notes

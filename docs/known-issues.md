@@ -22,7 +22,7 @@
 
 **Important:** Manual `aws ec2 authorize-security-group-ingress` fixes get removed by CAPA's security group reconciliation loop. The rule MUST be in the AWSCluster `additionalControlPlaneIngressRules` spec.
 
-**Fix:** Added VXLAN rule to `additionalControlPlaneIngressRules` in `cluster-oasis-dev.yml`:
+**Fix:** Added VXLAN rule to `additionalControlPlaneIngressRules` in `clusters/oasis-control/cluster.yml`:
 ```yaml
 - description: "VXLAN for Cilium CNI cross-node pod networking"
   protocol: udp

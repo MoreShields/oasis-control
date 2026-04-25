@@ -2,7 +2,7 @@
 set -euo pipefail
 
 # Installs ArgoCD on the control cluster and applies the app-of-apps
-# Usage: KUBECONFIG=~/.kube/oasis-dev.kubeconfig ./control/argocd/install.sh
+# Usage: KUBECONFIG=~/.kube/oasis-control.kubeconfig ./control/argocd/install.sh
 
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 

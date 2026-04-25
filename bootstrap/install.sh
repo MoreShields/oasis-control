@@ -6,7 +6,7 @@ set -euo pipefail
 
 REPO_ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 BOOTSTRAP_CONTEXT="kind-oasis-bootstrap"
-CONTROL_KUBECONFIG="$HOME/.kube/oasis-dev.kubeconfig"
+CONTROL_KUBECONFIG="$HOME/.kube/oasis-control.kubeconfig"
 
 log() { echo "=== $1 ==="; }
 wait_for() {
@@ -61,24 +61,24 @@ log "Phase 1 complete: Bootstrap cluster ready"
 log "Phase 2: Create control cluster on AWS"
 
 # Clean any stale secrets from previous runs (prevents kubeconfig cert mismatch)
-kubectl delete namespace oasis-dev --ignore-not-found 2>/dev/null || true
+kubectl delete namespace oasis-control --ignore-not-found 2>/dev/null || true
 
-kubectl apply -f "$REPO_ROOT/clusters/control-cluster/cluster-oasis-dev.yml"
-kubectl apply -f "$REPO_ROOT/clusters/control-cluster/aws-ccm-addon.yml"
+kubectl apply -f "$REPO_ROOT/clusters/oasis-control/cluster.yml"
+kubectl apply -f "$REPO_ROOT/clusters/oasis-control/aws-ccm-addon.yml"
 
 echo "  Waiting for AWSCluster to be ready..."
-wait_for "AWSCluster" kubectl get awscluster oasis-dev -n oasis-dev -o jsonpath='{.status.ready}' | grep -q true
+wait_for "AWSCluster" kubectl get awscluster oasis-control -n oasis-control -o jsonpath='{.status.ready}' | grep -q true
 
 echo "  Waiting for all 3 machines to be Running..."
 while true; do
-  RUNNING=$(kubectl get machines -n oasis-dev -o jsonpath='{range .items[*]}{.status.phase}{"\n"}{end}' 2>/dev/null | grep -c Running || true)
+  RUNNING=$(kubectl get machines -n oasis-control -o jsonpath='{range .items[*]}{.status.phase}{"\n"}{end}' 2>/dev/null | grep -c Running || true)
   if [ "$RUNNING" -ge 3 ]; then break; fi
   echo "    $RUNNING/3 machines Running..."
   sleep 30
 done
 
 echo "  Extracting control cluster kubeconfig..."
-kubectl get secret oasis-dev-kubeconfig -n oasis-dev \
+kubectl get secret oasis-control-kubeconfig -n oasis-control \
   -o jsonpath='{.data.value}' | base64 -d > "$CONTROL_KUBECONFIG"
 
 echo "  Verifying control cluster nodes..."

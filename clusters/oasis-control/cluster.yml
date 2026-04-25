@@ -3,14 +3,14 @@
 apiVersion: v1
 kind: Namespace
 metadata:
-  name: oasis-dev
+  name: oasis-control
 ---
 # Cluster — the CAPI core object that ties everything together
 apiVersion: cluster.x-k8s.io/v1beta2
 kind: Cluster
 metadata:
-  name: oasis-dev
-  namespace: oasis-dev
+  name: oasis-control
+  namespace: oasis-control
   labels:
     ccm: external
 spec:
@@ -22,18 +22,18 @@ spec:
   infrastructureRef:
     apiGroup: infrastructure.cluster.x-k8s.io
     kind: AWSCluster
-    name: oasis-dev
+    name: oasis-control
   controlPlaneRef:
     apiGroup: controlplane.cluster.x-k8s.io
     kind: RKE2ControlPlane
-    name: oasis-dev-control-plane
+    name: oasis-control-control-plane
 ---
 # AWSCluster — tells CAPA to create a new VPC and all supporting infra in us-west-1
 apiVersion: infrastructure.cluster.x-k8s.io/v1beta2
 kind: AWSCluster
 metadata:
-  name: oasis-dev
-  namespace: oasis-dev
+  name: oasis-control
+  namespace: oasis-control
 spec:
   region: us-west-1
   sshKeyName: nate-bnsf
@@ -66,8 +66,8 @@ spec:
 apiVersion: infrastructure.cluster.x-k8s.io/v1beta2
 kind: AWSMachineTemplate
 metadata:
-  name: oasis-dev-mt
-  namespace: oasis-dev
+  name: oasis-control-mt
+  namespace: oasis-control
 spec:
   template:
     spec:
@@ -89,8 +89,8 @@ spec:
 apiVersion: controlplane.cluster.x-k8s.io/v1beta1
 kind: RKE2ControlPlane
 metadata:
-  name: oasis-dev-control-plane
-  namespace: oasis-dev
+  name: oasis-control-control-plane
+  namespace: oasis-control
 spec:
   replicas: 3
   version: v1.32.4+rke2r1
@@ -99,7 +99,7 @@ spec:
     infrastructureRef:
       apiVersion: infrastructure.cluster.x-k8s.io/v1beta2
       kind: AWSMachineTemplate
-      name: oasis-dev-mt
+      name: oasis-control-mt
   serverConfig:
     cni: cilium
     cloudProviderName: external

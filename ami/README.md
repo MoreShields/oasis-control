@@ -24,7 +24,7 @@ cd ami
 ./build-ami.sh
 ```
 
-The script builds the image, uploads to S3, imports as an EBS snapshot, and registers an AMI. Takes ~10 minutes (mostly snapshot import). The new AMI ID is printed at the end — update `clusters/control-cluster/cluster-oasis-dev.yml` with it.
+The script builds the image, uploads to S3, imports as an EBS snapshot, and registers an AMI. Takes ~10 minutes (mostly snapshot import). The new AMI ID is printed at the end — update `clusters/oasis-control/cluster.yml` with it.
 
 ## Updating RKE2 version
 
@@ -60,7 +60,7 @@ cloud-init writes /run/rke2-bootstrap/env (from IMDS userdata)
 
 ### CAPI vs standalone usage
 
-**Under CAPI (oasis-dev cluster):** CAPRKE2 generates its own cloud-init userdata that configures and starts RKE2. The baked-in systemd path unit never triggers because CAPRKE2 doesn't write `/run/rke2-bootstrap/env`. The AMI just provides the OS + RKE2 binaries + airgap images.
+**Under CAPI (oasis-control cluster):** CAPRKE2 generates its own cloud-init userdata that configures and starts RKE2. The baked-in systemd path unit never triggers because CAPRKE2 doesn't write `/run/rke2-bootstrap/env`. The AMI just provides the OS + RKE2 binaries + airgap images.
 
 **Standalone (deploy.sh on jump host):** The `deploy.sh` script (not included here — see `n-jump:~/k8s-mkosi/deploy.sh`) passes cloud-init userdata that writes the env file, triggering the full bootstrap sequence.
 
