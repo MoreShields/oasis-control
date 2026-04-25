@@ -1,3 +1,9 @@
 .env
 *.pem
 *.key
+
+# mkosi build artifacts
+ami/k8s-node*
+ami/*.raw
+ami/*.initrd
+ami/*.vmlinuz

@@ -1,0 +1,37 @@
+#!/bin/bash
+set -euo pipefail
+
+# Only run for the "final" invocation, not "build"
+if [ "${1:-}" = "build" ]; then
+    exit 0
+fi
+
+# This script runs during mkosi build with network access.
+# Download and install RKE2 for airgap operation at boot.
+
+RKE2_VERSION="v1.32.4+rke2r1"
+ARCH="amd64"
+
+ARTIFACTS_DIR="/var/lib/rancher/rke2/agent/images"
+mkdir -p "$ARTIFACTS_DIR"
+
+# Download RKE2 installer
+curl -sfL https://get.rke2.io -o /tmp/rke2-install.sh
+
+# Download RKE2 tarball + sha256sum for offline install
+curl -sfL "https://github.com/rancher/rke2/releases/download/${RKE2_VERSION}/rke2.linux-${ARCH}.tar.gz" \
+    -o /tmp/rke2.linux-${ARCH}.tar.gz
+curl -sfL "https://github.com/rancher/rke2/releases/download/${RKE2_VERSION}/sha256sum-${ARCH}.txt" \
+    -o /tmp/sha256sum-${ARCH}.txt
+
+# Download airgap images
+curl -sfL "https://github.com/rancher/rke2/releases/download/${RKE2_VERSION}/rke2-images-core.linux-${ARCH}.tar.zst" \
+    -o "${ARTIFACTS_DIR}/rke2-images-core.linux-${ARCH}.tar.zst"
+curl -sfL "https://github.com/rancher/rke2/releases/download/${RKE2_VERSION}/rke2-images-cilium.linux-${ARCH}.tar.zst" \
+    -o "${ARTIFACTS_DIR}/rke2-images-cilium.linux-${ARCH}.tar.zst"
+
+# Run the installer in offline/tarball mode
+INSTALL_RKE2_ARTIFACT_PATH=/tmp INSTALL_RKE2_TYPE=server bash /tmp/rke2-install.sh
+
+# Clean up download artifacts (keep airgap images)
+rm -f /tmp/rke2-install.sh /tmp/rke2.linux-${ARCH}.tar.gz /tmp/sha256sum-${ARCH}.txt

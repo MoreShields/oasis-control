@@ -1,0 +1,19 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: capi-system
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: aws-infrastructure-system
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: rke2-bootstrap-system
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: rke2-control-plane-system

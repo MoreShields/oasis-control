@@ -5,7 +5,7 @@ set -euo pipefail
 # Usage: ./scripts/create-aws-secret.sh
 
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
-ENV_FILE="${SCRIPT_DIR}/../.env"
+ENV_FILE="${SCRIPT_DIR}/../../.env"
 
 if [ ! -f "$ENV_FILE" ]; then
   echo "Error: .env file not found at $ENV_FILE"

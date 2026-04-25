@@ -1,0 +1,2 @@
+disable rke2-server.service
+disable rke2-agent.service

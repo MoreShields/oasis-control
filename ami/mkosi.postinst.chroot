@@ -1,0 +1,30 @@
+#!/bin/bash
+set -euo pipefail
+
+# This script runs during mkosi build WITHOUT network access.
+# Configure kernel modules, sysctls, and enable services.
+
+# Kernel modules for Kubernetes networking
+cat > /etc/modules-load.d/k8s.conf <<EOF
+overlay
+br_netfilter
+EOF
+
+# Sysctl tunables for Kubernetes
+cat > /etc/sysctl.d/k8s.conf <<EOF
+net.ipv4.ip_forward = 1
+net.bridge.bridge-nf-call-iptables = 1
+net.bridge.bridge-nf-call-ip6tables = 1
+EOF
+
+# Enable services
+systemctl enable systemd-networkd
+systemctl enable systemd-resolved
+systemctl enable rke2-bootstrap.path
+
+# Disable rke2-server/agent — bootstrap script starts it at the right time
+systemctl disable rke2-server.service || true
+systemctl disable rke2-agent.service || true
+
+# Mask swap
+systemctl mask swap.target

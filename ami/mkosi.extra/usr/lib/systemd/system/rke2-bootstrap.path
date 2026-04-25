@@ -1,0 +1,8 @@
+[Unit]
+Description=Watch for RKE2 bootstrap env file
+
+[Path]
+PathExists=/run/rke2-bootstrap/env
+
+[Install]
+WantedBy=multi-user.target

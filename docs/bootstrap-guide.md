@@ -1,116 +1,96 @@
 # Bootstrap Guide
 
-Complete guide to bootstrapping the oasis-control management cluster and creating workload clusters on AWS.
+Bootstraps a local Kind cluster ("bootstrap cluster"), uses it to provision the oasis-dev control cluster on AWS, then installs CAPI + ArgoCD on the control cluster for managing downstream workload clusters via GitOps.
+
+## Architecture
+
+```
+Bootstrap (Kind, local, ephemeral)
+  └─ creates → Control Cluster (oasis-dev, AWS, permanent)
+                  ├─ ArgoCD (GitOps)
+                  ├─ CAPI Operator + providers
+                  ├─ manages → future workload clusters
+```
 
 ## Prerequisites
 
-**Local tools:**
-- `kind` — local Kubernetes cluster
-- `kubectl` — Kubernetes CLI
-- `helm` — Kubernetes package manager
-- `aws` CLI — configured with profile `nate-bnsf` (us-west-1)
-- `curl`
+**Local tools:** `kind`, `kubectl`, `helm`, `aws` (profile `nate-bnsf`, us-west-1), `curl`
 
-**AWS resources (must exist before bootstrap):**
+**AWS resources (must exist):**
 - SSH key pair `nate-bnsf` in us-west-1
-- AMI `ami-0ce04faeae10d6e44` in us-west-1 (Debian Trixie + RKE2 v1.32.4+rke2r1 airgap, built via mkosi on n-jump:/home/admin/k8s-mkosi)
-- IAM instance profile `k8s-converged-node` (see [docs/iam-instance-roles.md](iam-instance-roles.md) for creation steps)
+- AMI `ami-0ce04faeae10d6e44` (Debian Trixie + RKE2 v1.32.4+rke2r1 airgap)
+- IAM instance profile `k8s-converged-node` (see [iam-instance-roles.md](iam-instance-roles.md))
 
-**Credentials:**
-- `.env` file in project root with `AWS_ACCESS_KEY_ID` and `AWS_SECRET_ACCESS_KEY`
+**Credentials:** `.env` in project root with `AWS_ACCESS_KEY_ID` and `AWS_SECRET_ACCESS_KEY`
 
-## Step 1: Create the Kind management cluster
-
-```bash
-kind create cluster --name oasis-control
-kubectl cluster-info --context kind-oasis-control
-```
-
-## Step 2: Install the CAPI Operator
+## Quick Start
 
 ```bash
-helm repo add capi-operator https://kubernetes-sigs.github.io/cluster-api-operator
-helm repo update
-
-helm install capi-operator capi-operator/cluster-api-operator \
-  --create-namespace -n capi-operator-system \
-  --set infrastructure=aws \
-  --wait
+./bootstrap/install.sh
 ```
 
-## Step 3: Create the AWS credentials secret
+This runs the full flow: Kind cluster → control cluster → CAPI + ArgoCD. Takes ~15 minutes.
+
+## What the Script Does
+
+**Phase 1: Bootstrap Kind cluster**
+- Creates `oasis-bootstrap` Kind cluster
+- Installs cert-manager, CAPI Operator, providers
+- Creates AWS credentials secret
+
+**Phase 2: Create control cluster on AWS**
+- Applies cluster manifest (VPC, NLB, 3 converged nodes)
+- Waits for all 3 machines to be Running
+- Extracts kubeconfig to `~/.kube/oasis-dev.kubeconfig`
+
+**Phase 3: Install CAPI on control cluster**
+- Installs cert-manager, CAPI Operator, providers on oasis-dev
+- The control cluster can now manage downstream workload clusters
+
+**Phase 4: Install ArgoCD on control cluster**
+- Helm installs ArgoCD
+- Applies app-of-apps pointing at this git repo
+- ArgoCD manages CAPI providers via GitOps going forward
+
+**Phase 5: Cleanup**
+- Prompts to delete the bootstrap Kind cluster
+
+## Post-Bootstrap
 
 ```bash
-./scripts/create-aws-secret.sh
+# Access the control cluster
+export KUBECONFIG=~/.kube/oasis-dev.kubeconfig
+kubectl get nodes
+
+# Get ArgoCD admin password
+kubectl -n argocd get secret argocd-initial-admin-secret -o jsonpath='{.data.password}' | base64 -d
+
+# Check ArgoCD applications
+kubectl get applications -n argocd
 ```
 
-This reads `.env` and creates the `bnsf-aws-creds` secret in the `default` namespace, formatted for CAPA.
+## Adding a Downstream Cluster
 
-## Step 4: Apply CAPI providers
-
-The providers configure CAPA (AWS infrastructure) and CAPRKE2 (RKE2 bootstrap + control plane).
-
-```bash
-kubectl apply -f clusters/control-cluster/infrastructureprovider-aws.yml
-kubectl apply -f clusters/control-cluster/bootstrapprovider-rke2.yml
-kubectl apply -f clusters/control-cluster/controlplaneprovider-rke2.yml
-```
-
-Wait for all providers to be ready:
-
-```bash
-kubectl get providers.operator.cluster.x-k8s.io -A
-# All should show Ready=True
-```
-
-## Step 5: Create the workload cluster
-
-```bash
-kubectl apply -f clusters/control-cluster/cluster-oasis-dev.yml
-kubectl apply -f clusters/control-cluster/aws-ccm-addon.yml
-```
-
-This creates:
-- VPC with public/private subnets in us-west-1
-- NLB for the API server (ports 6443 + 9345)
-- 3 converged control plane + worker nodes (t3a.medium)
-- AWS CCM deployed via ClusterResourceSet
-
-## Step 6: Monitor progress
-
-```bash
-# Watch infrastructure provisioning (~3 min for VPC + NLB)
-kubectl get awscluster -n oasis-dev -w
-
-# Watch machine creation and node join (~5 min per node)
-kubectl get machines -n oasis-dev -w
-
-# Once machines are Running, get the workload kubeconfig
-kubectl get secret oasis-dev-kubeconfig -n oasis-dev \
-  -o jsonpath='{.data.value}' | base64 -d > ~/.kube/oasis-dev.kubeconfig
-
-# Verify all 3 nodes
-kubectl --kubeconfig ~/.kube/oasis-dev.kubeconfig get nodes
-```
-
-Expected result: 3 Ready nodes with `control-plane,etcd,master` roles and `aws:///` providerIDs.
+1. Create `clusters/<name>/cluster.yml` with the CAPI manifest
+2. Create an ArgoCD Application in `control/argocd/applications/`
+3. Commit and push — ArgoCD syncs automatically
 
 ## Teardown
 
 ```bash
-# Delete the workload cluster (terminates all AWS resources)
-kubectl delete cluster oasis-dev -n oasis-dev
+# Delete a downstream workload cluster
+kubectl delete cluster <name> -n <namespace>
 
-# This cascades to AWSCluster, machines, VPC, NLB, etc.
-# Takes ~5 min for AWS resource cleanup (NAT gateway deletion is slow)
+# Delete the control cluster (from bootstrap Kind, if still running)
+kubectl --context kind-oasis-bootstrap delete cluster oasis-dev -n oasis-dev
 ```
 
 ## Architecture Notes
 
-**providerID:** Set via kubelet `--provider-id` flag at boot using IMDS (in `preRKE2Commands`), bypassing the CCM for node identity. This avoids a circular dependency where CAPI waits for providerID → CCM sets providerID → CCM needs a running cluster → cluster needs CAPI to mark machines Ready.
+**providerID:** Set via kubelet `--provider-id` at boot using IMDS, bypassing the CCM for node identity.
 
-**Node join:** Uses `registrationMethod: internal-first` so joining nodes connect directly to an existing node's private IP on port 9345, avoiding NLB hairpin issues with internet-facing load balancers.
+**Node join:** Uses `registrationMethod: internal-first` so joining nodes connect via private IP on port 9345, avoiding NLB hairpin issues.
 
-**CCM:** Still deployed for removing the `node.cloudprovider.kubernetes.io/uninitialized` taint (required because `cloudProviderName: external` is set), Service type LoadBalancer support, and node lifecycle management.
+**CCM:** Deployed for `uninitialized` taint removal, Service LoadBalancer support, and node lifecycle.
 
-**Air-gap:** RKE2 and container images are baked into the AMI. Nodes don't need internet access for Kubernetes components — only for initial cloud-init and NLB-based registration.
+**Air-gap:** RKE2 and images baked into AMI. Nodes only need internet for cloud-init and registration.

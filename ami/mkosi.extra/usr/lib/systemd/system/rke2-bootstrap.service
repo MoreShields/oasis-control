@@ -1,0 +1,12 @@
+[Unit]
+Description=RKE2 Bootstrap (one-shot)
+After=network-online.target
+Wants=network-online.target
+ConditionPathExists=!/var/lib/rke2-bootstrapped
+
+[Service]
+Type=oneshot
+RemainAfterExit=yes
+EnvironmentFile=/run/rke2-bootstrap/env
+ExecStart=/usr/local/bin/rke2-bootstrap.sh
+ExecStartPost=/usr/bin/touch /var/lib/rke2-bootstrapped

@@ -21,7 +21,7 @@ Used by converged Kubernetes nodes running CCM (for Service LoadBalancers and no
 
 ### What's excluded
 
-- **Route management** (`ec2:CreateRoute`, etc.) — not needed with `--configure-cloud-routes=false` (Cilium handles pod networking)
+- **Route management** (`ec2:CreateRoute`, etc.) — not needed with `--configure-cloud-routes=false` (Canal VXLAN handles pod networking)
 - **Auto Scaling** — CAPI manages node scaling, not cluster-autoscaler
 - **ECR** — not using ECR for container images
 

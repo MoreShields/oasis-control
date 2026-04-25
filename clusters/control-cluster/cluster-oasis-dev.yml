@@ -53,6 +53,12 @@ spec:
         toPort: 9345
         cidrBlocks:
           - "10.0.0.0/16"
+      - description: "VXLAN for Cilium CNI cross-node pod networking"
+        protocol: udp
+        fromPort: 8472
+        toPort: 8472
+        cidrBlocks:
+          - "10.0.0.0/16"
 
 ---
 # AWSMachineTemplate — defines the EC2 config for all 3 converged nodes
@@ -66,7 +72,7 @@ spec:
   template:
     spec:
       ami:
-        # Debian Trixie (13) + RKE2 v1.32.4+rke2r1 airgap (mkosi-built, see n-jump:/home/admin/k8s-mkosi)
+        # Debian Trixie (13) + RKE2 v1.32.4+rke2r1 airgap (mkosi-built, see ami/)
         id: ami-0ce04faeae10d6e44
       instanceType: t3a.medium
       iamInstanceProfile: k8s-converged-node
