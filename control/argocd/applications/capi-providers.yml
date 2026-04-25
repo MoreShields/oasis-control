@@ -9,7 +9,7 @@ spec:
   project: default
   source:
     repoURL: https://github.com/MoreShields/oasis-control
-    path: control/providers
+    path: control/capi/providers
     targetRevision: main
   destination:
     server: https://kubernetes.default.svc

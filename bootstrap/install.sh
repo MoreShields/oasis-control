@@ -38,14 +38,14 @@ helm upgrade --install capi-operator capi-operator/cluster-api-operator \
   --create-namespace -n capi-operator-system --wait --timeout 5m
 
 echo "  Creating AWS credentials secret..."
-"$REPO_ROOT/control/secrets/create-aws-secret.sh"
+"$REPO_ROOT/control/capi/secrets/create-aws-secret.sh"
 
 echo "  Applying CAPI providers..."
-kubectl apply -f "$REPO_ROOT/control/providers/namespaces.yml"
-kubectl apply -f "$REPO_ROOT/control/providers/coreprovider-cluster-api.yml"
-kubectl apply -f "$REPO_ROOT/control/providers/infrastructureprovider-aws.yml"
-kubectl apply -f "$REPO_ROOT/control/providers/bootstrapprovider-rke2.yml"
-kubectl apply -f "$REPO_ROOT/control/providers/controlplaneprovider-rke2.yml"
+kubectl apply -f "$REPO_ROOT/control/capi/providers/namespaces.yml"
+kubectl apply -f "$REPO_ROOT/control/capi/providers/coreprovider-cluster-api.yml"
+kubectl apply -f "$REPO_ROOT/control/capi/providers/infrastructureprovider-aws.yml"
+kubectl apply -f "$REPO_ROOT/control/capi/providers/bootstrapprovider-rke2.yml"
+kubectl apply -f "$REPO_ROOT/control/capi/providers/controlplaneprovider-rke2.yml"
 
 echo "  Waiting for providers to be ready..."
 sleep 30
@@ -100,14 +100,14 @@ helm upgrade --install capi-operator capi-operator/cluster-api-operator \
   --create-namespace -n capi-operator-system --wait --timeout 5m
 
 echo "  Creating AWS credentials secret on control cluster..."
-"$REPO_ROOT/control/secrets/create-aws-secret.sh"
+"$REPO_ROOT/control/capi/secrets/create-aws-secret.sh"
 
 echo "  Applying CAPI providers on control cluster..."
-kubectl apply -f "$REPO_ROOT/control/providers/namespaces.yml"
-kubectl apply -f "$REPO_ROOT/control/providers/coreprovider-cluster-api.yml"
-kubectl apply -f "$REPO_ROOT/control/providers/infrastructureprovider-aws.yml"
-kubectl apply -f "$REPO_ROOT/control/providers/bootstrapprovider-rke2.yml"
-kubectl apply -f "$REPO_ROOT/control/providers/controlplaneprovider-rke2.yml"
+kubectl apply -f "$REPO_ROOT/control/capi/providers/namespaces.yml"
+kubectl apply -f "$REPO_ROOT/control/capi/providers/coreprovider-cluster-api.yml"
+kubectl apply -f "$REPO_ROOT/control/capi/providers/infrastructureprovider-aws.yml"
+kubectl apply -f "$REPO_ROOT/control/capi/providers/bootstrapprovider-rke2.yml"
+kubectl apply -f "$REPO_ROOT/control/capi/providers/controlplaneprovider-rke2.yml"
 
 echo "  Waiting for providers on control cluster..."
 sleep 30
