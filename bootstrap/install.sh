@@ -67,7 +67,7 @@ kubectl apply -f "$REPO_ROOT/clusters/oasis-control/cluster.yml"
 kubectl apply -f "$REPO_ROOT/clusters/oasis-control/aws-ccm-addon.yml"
 
 echo "  Waiting for AWSCluster to be ready..."
-wait_for "AWSCluster" kubectl get awscluster oasis-control -n oasis-control -o jsonpath='{.status.ready}' | grep -q true
+wait_for "AWSCluster" bash -c "kubectl get awscluster oasis-control -n oasis-control -o jsonpath='{.status.ready}' | grep -q true"
 
 echo "  Waiting for all 3 machines to be Running..."
 while true; do
