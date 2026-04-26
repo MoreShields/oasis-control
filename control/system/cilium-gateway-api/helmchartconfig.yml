@@ -7,3 +7,11 @@ spec:
   valuesContent: |-
     gatewayAPI:
       enabled: true
+    # kube-proxy replacement (eBPF socket-level service routing) — required for
+    # Cilium Gateway API. Pair with `disable: [kube-proxy]` in RKE2 serverConfig.
+    kubeProxyReplacement: true
+    # Direct apiserver endpoint so Cilium can reach kube-apiserver before its own
+    # eBPF service routing is up. RKE2 runs a local supervisor LB on every node
+    # that proxies 127.0.0.1:6443 to the actual apiserver.
+    k8sServiceHost: 127.0.0.1
+    k8sServicePort: 6443

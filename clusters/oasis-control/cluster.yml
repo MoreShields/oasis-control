@@ -103,6 +103,13 @@ spec:
   serverConfig:
     cni: cilium
     cloudProviderName: external
+    # kube-proxy replaced by Cilium eBPF (kubeProxyReplacement: true in
+    # control/system/cilium-gateway-api/helmchartconfig.yml). Cilium Gateway
+    # API requires this. Disabling here prevents RKE2 from installing
+    # kube-proxy on new nodes; existing kube-proxy DaemonSet must be
+    # deleted manually after the rolling replacement completes.
+    disable:
+      - kube-proxy
   preRKE2Commands:
     # Set providerID on kubelet directly from IMDS — bypasses CCM for node identity
     - 'TOKEN=$(curl -sX PUT "http://169.254.169.254/latest/api/token" -H "X-aws-ec2-metadata-token-ttl-seconds:60") && AZ=$(curl -sH "X-aws-ec2-metadata-token:$TOKEN" http://169.254.169.254/latest/meta-data/placement/availability-zone) && IID=$(curl -sH "X-aws-ec2-metadata-token:$TOKEN" http://169.254.169.254/latest/meta-data/instance-id) && printf "kubelet-arg:\n  - \"provider-id=aws:///%s/%s\"\n" "$AZ" "$IID" >> /etc/rancher/rke2/config.yaml'
