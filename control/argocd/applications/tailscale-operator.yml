@@ -21,9 +21,10 @@ spec:
         operatorConfig:
           hostname: "tailscale-operator-oasis-control"
         # Tag that tailnet-joined proxy devices get. Define ACLs against this
-        # tag in your tailnet admin console.
+        # tag in your tailnet admin console. Must match the tag the OAuth
+        # client was created under, and `tagOwners` must include it.
         proxyConfig:
-          defaultTags: "tag:k8s"
+          defaultTags: "tag:bnsf-aws"
   destination:
     server: https://kubernetes.default.svc
     namespace: tailscale

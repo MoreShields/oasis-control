@@ -8,7 +8,7 @@ The helm install lives at `control/argocd/applications/tailscale-operator.yml`.
 
 The operator authenticates to your tailnet via OAuth. The chart reads OAuth creds from a Secret named `operator-oauth` in the `tailscale` namespace; that Secret is **not** in this repo and must be created before the helm release becomes Healthy.
 
-1. In the [Tailscale admin console](https://login.tailscale.com/admin/settings/oauth), create an OAuth client with **Devices: write** and **Devices: core: write** scopes. Tag it `tag:k8s` (the same tag the operator gives to spawned proxy devices).
+1. In the [Tailscale admin console](https://login.tailscale.com/admin/settings/oauth), create an OAuth client with **Devices: write** and **Devices: core: write** scopes. Tag it `tag:bnsf-aws` (the same tag the operator gives to spawned proxy devices).
 2. On the control cluster, create the Secret:
    ```bash
    KUBECONFIG=~/.kube/oasis-control.kubeconfig \

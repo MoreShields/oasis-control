@@ -22,7 +22,7 @@ spec:
     annotations:
       tailscale.com/expose: "true"
       tailscale.com/hostname: "gw-oasis-control"
-      tailscale.com/tags: "tag:k8s"
+      tailscale.com/tags: "tag:bnsf-aws"
   listeners:
     - name: http
       protocol: HTTP
