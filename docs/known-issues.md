@@ -29,7 +29,7 @@
   fromPort: 8472
   toPort: 8472
   cidrBlocks:
-    - "10.0.0.0/16"
+    - "10.50.0.0/16"
 ```
 
 **Status:** Resolved. Verified webhook calls succeed on first attempt after fix.

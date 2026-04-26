@@ -45,20 +45,20 @@ spec:
   # CAPA will create a new VPC with public/private subnets across available AZs
   network:
     vpc:
-      cidrBlock: "10.0.0.0/16"
+      cidrBlock: "10.50.0.0/16"
     additionalControlPlaneIngressRules:
       - description: "RKE2 supervisor port for node join"
         protocol: tcp
         fromPort: 9345
         toPort: 9345
         cidrBlocks:
-          - "10.0.0.0/16"
+          - "10.50.0.0/16"
       - description: "VXLAN for Cilium CNI cross-node pod networking"
         protocol: udp
         fromPort: 8472
         toPort: 8472
         cidrBlocks:
-          - "10.0.0.0/16"
+          - "10.50.0.0/16"
 
 ---
 # AWSMachineTemplate — defines the EC2 config for all 3 converged nodes
