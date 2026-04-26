@@ -12,13 +12,11 @@ helm repo update argo
 helm upgrade --install argocd argo/argo-cd \
   --create-namespace -n argocd \
   --set 'configs.params.controller\.diff\.server\.side=true' \
+  --set 'configs.params.server\.insecure=true' \
   --wait --timeout 5m
 
 echo "Waiting for ArgoCD server to be ready..."
 kubectl wait --for=condition=Available deployment/argocd-server -n argocd --timeout=120s
-
-echo "Applying ingress..."
-kubectl apply -f "$SCRIPT_DIR/server-ingress.yml"
 
 echo "Applying app-of-apps..."
 kubectl apply -f "$SCRIPT_DIR/app-of-apps.yml"

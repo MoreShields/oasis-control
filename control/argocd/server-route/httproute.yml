@@ -1,0 +1,22 @@
+# Routes the user's CNAME (e.g. argocd.<internal-domain>) to argocd-server.
+# Hostname is intentionally a placeholder — replace once you've picked the
+# internal subdomain you'll use for this cluster.
+apiVersion: gateway.networking.k8s.io/v1
+kind: HTTPRoute
+metadata:
+  name: argocd-server
+  namespace: argocd
+spec:
+  parentRefs:
+    - name: cluster-gateway
+      namespace: gateway-system
+  hostnames:
+    - argocd.oasis-control.internal
+  rules:
+    - matches:
+        - path:
+            type: PathPrefix
+            value: /
+      backendRefs:
+        - name: argocd-server
+          port: 80

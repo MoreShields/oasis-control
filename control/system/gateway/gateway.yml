@@ -1,0 +1,32 @@
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: gateway-system
+---
+# Single Gateway per cluster. All apps attach via HTTPRoute `parentRefs`.
+# Listener is HTTP-only for now; TLS deferred until the user supplies a cert
+# matching their internal CNAME. Add an HTTPS listener with certificateRefs
+# at that point — HTTPRoutes don't need to change.
+apiVersion: gateway.networking.k8s.io/v1
+kind: Gateway
+metadata:
+  name: cluster-gateway
+  namespace: gateway-system
+spec:
+  gatewayClassName: cilium
+  # Cilium propagates these to the auto-created `cilium-gateway-cluster-gateway`
+  # Service. The Tailscale operator picks up `tailscale.com/expose` and creates
+  # a tailnet-joined proxy that targets the Service.
+  infrastructure:
+    annotations:
+      tailscale.com/expose: "true"
+      tailscale.com/hostname: "gw-oasis-control"
+      tailscale.com/tags: "tag:k8s"
+  listeners:
+    - name: http
+      protocol: HTTP
+      port: 80
+      allowedRoutes:
+        namespaces:
+          from: All

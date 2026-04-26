@@ -1,0 +1,23 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: cilium-gateway-api-config
+  namespace: argocd
+  annotations:
+    # After CRDs (wave 0) so Cilium has a GatewayClass target to register
+    argocd.argoproj.io/sync-wave: "1"
+spec:
+  project: default
+  source:
+    repoURL: https://github.com/MoreShields/oasis-control
+    path: control/system/cilium-gateway-api
+    targetRevision: main
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: kube-system
+  syncPolicy:
+    automated:
+      selfHeal: true
+    syncOptions:
+      - ServerSideApply=true
+      - ServerSideDiff=true

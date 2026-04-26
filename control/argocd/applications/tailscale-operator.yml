@@ -1,0 +1,36 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: tailscale-operator
+  namespace: argocd
+  annotations:
+    argocd.argoproj.io/sync-wave: "1"
+spec:
+  project: default
+  source:
+    repoURL: https://pkgs.tailscale.com/helmcharts
+    chart: tailscale-operator
+    targetRevision: 1.96.4
+    helm:
+      releaseName: tailscale-operator
+      valuesObject:
+        # OAuth credentials are read from the existing Secret `operator-oauth` in
+        # the `tailscale` namespace. The Secret is bootstrap-applied (see
+        # control/system/tailscale-operator/README.md) — not stored in repo.
+        oauth: {}
+        operatorConfig:
+          hostname: "tailscale-operator-oasis-control"
+        # Tag that tailnet-joined proxy devices get. Define ACLs against this
+        # tag in your tailnet admin console.
+        proxyConfig:
+          defaultTags: "tag:k8s"
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: tailscale
+  syncPolicy:
+    automated:
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true
+      - ServerSideApply=true
+      - ServerSideDiff=true
