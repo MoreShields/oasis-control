@@ -10,8 +10,11 @@ spec:
   project: default
   source:
     repoURL: https://github.com/kubernetes-sigs/gateway-api
-    path: config/crd/standard
-    # Pin to a known-good Gateway API release; bump deliberately.
+    # Experimental channel — Cilium expects TLSRoute / TCPRoute / UDPRoute /
+    # BackendTLSPolicy CRDs to exist even if unused. Standard channel omits
+    # them, causing the Cilium gateway controller to crash with
+    # "no kind is registered for the type v1alpha2.TLSRouteList".
+    path: config/crd/experimental
     targetRevision: v1.2.1
   destination:
     server: https://kubernetes.default.svc
