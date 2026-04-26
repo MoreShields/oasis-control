@@ -20,9 +20,13 @@ spec:
         oauth: {}
         operatorConfig:
           hostname: "tailscale-operator-oasis-control"
-        # Tag that tailnet-joined proxy devices get. Define ACLs against this
-        # tag in your tailnet admin console. Must match the tag the OAuth
-        # client was created under, and `tagOwners` must include it.
+          # Tag the operator's own tailnet device gets (defaults to
+          # tag:k8s-operator). Override so we don't need to define multiple
+          # tags in the tailnet ACL.
+          defaultTags:
+            - "tag:bnsf-aws"
+        # Tag spawned proxy devices get. Must match the tag the OAuth client
+        # was created under, and `tagOwners` must include it.
         proxyConfig:
           defaultTags: "tag:bnsf-aws"
   destination:
