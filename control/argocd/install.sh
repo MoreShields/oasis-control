@@ -11,6 +11,7 @@ helm repo add argo https://argoproj.github.io/argo-helm 2>/dev/null || true
 helm repo update argo
 helm upgrade --install argocd argo/argo-cd \
   --create-namespace -n argocd \
+  --set 'configs.params.controller\.diff\.server\.side=true' \
   --wait --timeout 5m
 
 echo "Waiting for ArgoCD server to be ready..."
