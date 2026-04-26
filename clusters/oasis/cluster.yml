@@ -1,0 +1,166 @@
+---
+# Namespace for the workload cluster resources
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: oasis
+---
+# Cluster — the CAPI core object that ties everything together
+apiVersion: cluster.x-k8s.io/v1beta2
+kind: Cluster
+metadata:
+  name: oasis
+  namespace: oasis
+  labels:
+    ccm: external
+spec:
+  clusterNetwork:
+    pods:
+      cidrBlocks: ["10.245.0.0/16"]
+    services:
+      cidrBlocks: ["10.112.0.0/12"]
+  infrastructureRef:
+    apiGroup: infrastructure.cluster.x-k8s.io
+    kind: AWSCluster
+    name: oasis
+  controlPlaneRef:
+    apiGroup: controlplane.cluster.x-k8s.io
+    kind: RKE2ControlPlane
+    name: oasis-control-plane
+---
+# AWSCluster — CAPA owns this cluster's VPC + subnets + IGW + NAT + SGs
+apiVersion: infrastructure.cluster.x-k8s.io/v1beta2
+kind: AWSCluster
+metadata:
+  name: oasis
+  namespace: oasis
+spec:
+  region: us-west-1
+  sshKeyName: nate-bnsf
+  controlPlaneLoadBalancer:
+    loadBalancerType: nlb
+    additionalListeners:
+      - port: 9345
+        protocol: TCP
+  network:
+    vpc:
+      cidrBlock: "10.1.0.0/16"
+    additionalControlPlaneIngressRules:
+      - description: "RKE2 supervisor port for node join"
+        protocol: tcp
+        fromPort: 9345
+        toPort: 9345
+        cidrBlocks:
+          - "10.1.0.0/16"
+      - description: "VXLAN for Cilium CNI cross-node pod networking"
+        protocol: udp
+        fromPort: 8472
+        toPort: 8472
+        cidrBlocks:
+          - "10.1.0.0/16"
+---
+# AWSMachineTemplate — control plane node
+apiVersion: infrastructure.cluster.x-k8s.io/v1beta2
+kind: AWSMachineTemplate
+metadata:
+  name: oasis-cp-mt
+  namespace: oasis
+spec:
+  template:
+    spec:
+      ami:
+        id: ami-0ce04faeae10d6e44
+      instanceType: t3a.medium
+      iamInstanceProfile: k8s-converged-node
+      sshKeyName: nate-bnsf
+      rootVolume:
+        size: 50
+        type: gp3
+      cloudInit:
+        insecureSkipSecretsManager: true
+---
+# AWSMachineTemplate — worker nodes
+apiVersion: infrastructure.cluster.x-k8s.io/v1beta2
+kind: AWSMachineTemplate
+metadata:
+  name: oasis-worker-mt
+  namespace: oasis
+spec:
+  template:
+    spec:
+      ami:
+        id: ami-0ce04faeae10d6e44
+      instanceType: t3a.medium
+      iamInstanceProfile: k8s-converged-node
+      sshKeyName: nate-bnsf
+      rootVolume:
+        size: 50
+        type: gp3
+      cloudInit:
+        insecureSkipSecretsManager: true
+---
+# RKE2ControlPlane — single CP node, default control-plane taint kept (split topology)
+apiVersion: controlplane.cluster.x-k8s.io/v1beta1
+kind: RKE2ControlPlane
+metadata:
+  name: oasis-control-plane
+  namespace: oasis
+spec:
+  replicas: 1
+  version: v1.32.4+rke2r1
+  registrationMethod: internal-first
+  machineTemplate:
+    infrastructureRef:
+      apiVersion: infrastructure.cluster.x-k8s.io/v1beta2
+      kind: AWSMachineTemplate
+      name: oasis-cp-mt
+  serverConfig:
+    cni: cilium
+    cloudProviderName: external
+  preRKE2Commands:
+    - 'TOKEN=$(curl -sX PUT "http://169.254.169.254/latest/api/token" -H "X-aws-ec2-metadata-token-ttl-seconds:60") && AZ=$(curl -sH "X-aws-ec2-metadata-token:$TOKEN" http://169.254.169.254/latest/meta-data/placement/availability-zone) && IID=$(curl -sH "X-aws-ec2-metadata-token:$TOKEN" http://169.254.169.254/latest/meta-data/instance-id) && printf "kubelet-arg:\n  - \"provider-id=aws:///%s/%s\"\n" "$AZ" "$IID" >> /etc/rancher/rke2/config.yaml'
+  agentConfig:
+    airGapped: true
+    format: cloud-config
+  rolloutStrategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 1
+---
+# RKE2ConfigTemplate — bootstrap config for worker nodes
+apiVersion: bootstrap.cluster.x-k8s.io/v1beta1
+kind: RKE2ConfigTemplate
+metadata:
+  name: oasis-worker-config
+  namespace: oasis
+spec:
+  template:
+    spec:
+      preRKE2Commands:
+        - 'TOKEN=$(curl -sX PUT "http://169.254.169.254/latest/api/token" -H "X-aws-ec2-metadata-token-ttl-seconds:60") && AZ=$(curl -sH "X-aws-ec2-metadata-token:$TOKEN" http://169.254.169.254/latest/meta-data/placement/availability-zone) && IID=$(curl -sH "X-aws-ec2-metadata-token:$TOKEN" http://169.254.169.254/latest/meta-data/instance-id) && printf "kubelet-arg:\n  - \"provider-id=aws:///%s/%s\"\n" "$AZ" "$IID" >> /etc/rancher/rke2/config.yaml'
+      agentConfig:
+        airGapped: true
+        format: cloud-config
+---
+# MachineDeployment — 2 worker nodes
+apiVersion: cluster.x-k8s.io/v1beta2
+kind: MachineDeployment
+metadata:
+  name: oasis-workers
+  namespace: oasis
+spec:
+  clusterName: oasis
+  replicas: 2
+  template:
+    spec:
+      clusterName: oasis
+      version: v1.32.4+rke2r1
+      bootstrap:
+        configRef:
+          apiGroup: bootstrap.cluster.x-k8s.io
+          kind: RKE2ConfigTemplate
+          name: oasis-worker-config
+      infrastructureRef:
+        apiGroup: infrastructure.cluster.x-k8s.io
+        kind: AWSMachineTemplate
+        name: oasis-worker-mt
