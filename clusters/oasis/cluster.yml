@@ -121,8 +121,9 @@ spec:
     # When this gets to oasis, oasis-control's Cilium HelmChartConfig pattern
     # needs replicating onto oasis (separate Argo Application targeting that
     # cluster, after we register oasis with this Argo).
-    disable:
-      - kube-proxy
+    disableComponents:
+      kubernetesComponents:
+        - kubeProxy
   preRKE2Commands:
     - 'TOKEN=$(curl -sX PUT "http://169.254.169.254/latest/api/token" -H "X-aws-ec2-metadata-token-ttl-seconds:60") && AZ=$(curl -sH "X-aws-ec2-metadata-token:$TOKEN" http://169.254.169.254/latest/meta-data/placement/availability-zone) && IID=$(curl -sH "X-aws-ec2-metadata-token:$TOKEN" http://169.254.169.254/latest/meta-data/instance-id) && printf "kubelet-arg:\n  - \"provider-id=aws:///%s/%s\"\n" "$AZ" "$IID" >> /etc/rancher/rke2/config.yaml'
   agentConfig:
