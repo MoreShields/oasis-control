@@ -11,7 +11,7 @@ spec:
     - name: cluster-gateway
       namespace: gateway-system
   hostnames:
-    - argocd.oasis-control.internal
+    - argocd.moreshields.com
   rules:
     - matches:
         - path:
