@@ -1,0 +1,26 @@
+# Private Gateway — exposed only to tailnet via the Tailscale operator.
+# Underlying Service is ClusterIP (no AWS LB). The operator sees the
+# tailscale.com/expose annotation propagated through Cilium and stands up
+# a tailnet proxy device at gw-oasis-control.<tailnet>.ts.net.
+#
+# Default for nearly everything. HTTPRoutes attach with
+#   parentRefs: [{name: tailnet-gateway, namespace: gateway-system}]
+apiVersion: gateway.networking.k8s.io/v1
+kind: Gateway
+metadata:
+  name: tailnet-gateway
+  namespace: gateway-system
+spec:
+  gatewayClassName: cilium
+  infrastructure:
+    annotations:
+      tailscale.com/expose: "true"
+      tailscale.com/hostname: "gw-oasis-control"
+      tailscale.com/tags: "tag:bnsf-aws"
+  listeners:
+    - name: http
+      protocol: HTTP
+      port: 80
+      allowedRoutes:
+        namespaces:
+          from: All

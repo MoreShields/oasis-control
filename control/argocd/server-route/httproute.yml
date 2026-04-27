@@ -8,7 +8,7 @@ metadata:
   namespace: argocd
 spec:
   parentRefs:
-    - name: cluster-gateway
+    - name: tailnet-gateway
       namespace: gateway-system
   hostnames:
     - argocd.moreshields.com

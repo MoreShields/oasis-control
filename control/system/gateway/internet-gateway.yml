@@ -1,0 +1,52 @@
+# Public Gateway — provisions a public NLB via AWS CCM. HTTPS-only;
+# unencrypted plaintext on the public internet is a non-starter.
+#
+# Status today: NOT PROGRAMMED. The listener references a TLS Secret
+# (`internet-gateway-cert`) that does not yet exist. Cilium will refuse to
+# program the Gateway until the Secret is in place — which means CCM
+# never sees a Service to provision an NLB for, so no AWS cost is incurred.
+# This is intentional: the manifest is in place for when an HTTPRoute
+# legitimately needs public exposure.
+#
+# To enable:
+# 1. Create a TLS Secret named `internet-gateway-cert` in this namespace
+#    containing a cert valid for whatever public hostname(s) you'll route.
+#    Either: cert-manager Certificate with ACME (HTTP-01 against the NLB
+#    once it's up), or hand-imported cert from any source.
+# 2. Wait for Cilium to program the Gateway — Service `cilium-gateway-
+#    internet-gateway` appears, AWS CCM provisions a public NLB.
+# 3. Point public DNS at the NLB DNS name.
+# 4. Attach HTTPRoutes via parentRefs and label the route's namespace
+#    `networking.example.com/exposure: public` (matches allowedRoutes
+#    selector below).
+#
+# See control/system/gateway/README.md for the full pattern.
+apiVersion: gateway.networking.k8s.io/v1
+kind: Gateway
+metadata:
+  name: internet-gateway
+  namespace: gateway-system
+spec:
+  gatewayClassName: cilium
+  infrastructure:
+    annotations:
+      service.beta.kubernetes.io/aws-load-balancer-type: nlb
+      service.beta.kubernetes.io/aws-load-balancer-scheme: internet-facing
+  listeners:
+    - name: https
+      protocol: HTTPS
+      port: 443
+      tls:
+        mode: Terminate
+        certificateRefs:
+          - kind: Secret
+            name: internet-gateway-cert
+      # Conservative default: only HTTPRoutes in namespaces explicitly
+      # labelled for public exposure can attach. Forces operators to
+      # opt-in instead of accidentally exposing internal apps.
+      allowedRoutes:
+        namespaces:
+          from: Selector
+          selector:
+            matchLabels:
+              networking.oasis-control/exposure: public

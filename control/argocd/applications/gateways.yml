@@ -1,7 +1,7 @@
 apiVersion: argoproj.io/v1alpha1
 kind: Application
 metadata:
-  name: cluster-gateway
+  name: gateways
   namespace: argocd
   annotations:
     # After CRDs (0), HelmChartConfig (1), so the cilium GatewayClass exists
